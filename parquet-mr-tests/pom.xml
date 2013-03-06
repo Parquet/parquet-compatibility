@@ -8,7 +8,7 @@
   <packaging>jar</packaging>
 
   <name>Parquet Hadoop</name>
-  <url>https://github.com/julienledem/Parquet/parquet-compatibility</url>
+  <url>https://github.com/Parquet/parquet-compatibility</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
