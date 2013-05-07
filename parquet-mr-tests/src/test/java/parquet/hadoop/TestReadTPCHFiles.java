@@ -31,7 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 import parquet.Log;
-import parquet.column.mem.PageReadStore;
+import parquet.column.page.PageReadStore;
 import parquet.example.data.Group;
 import parquet.example.data.simple.convert.GroupRecordConverter;
 import parquet.hadoop.metadata.ParquetMetadata;
@@ -73,7 +73,7 @@ public class TestReadTPCHFiles {
     ParquetMetadata readFooter = ParquetFileReader.readFooter(configuration, testInputFile);
     MessageType schema = readFooter.getFileMetaData().getSchema();
     ParquetFileReader parquetFileReader = new ParquetFileReader(configuration, testInputFile, readFooter.getBlocks(), schema.getColumns());
-    PageReadStore pages = parquetFileReader.readColumns();
+    PageReadStore pages = parquetFileReader.readNextRowGroup();
     final long rows = pages.getRowCount();
     LOG.info("rows: "+rows);
     final MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
