@@ -1,0 +1,10 @@
+message m {
+  optional int64 order_key;
+  optional int64 cust_key;
+  optional binary order_status;
+  optional double total_price;
+  optional binary order_date;
+  optional binary clerk;
+  optional int32 ship_priority;
+  optional binary comment;
+}
