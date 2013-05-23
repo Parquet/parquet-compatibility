@@ -54,78 +54,79 @@ public class TestReadTPCHFiles {
   private static final Log LOG = Log.getLog(TestReadTPCHFiles.class);
 
   @Test
-  public void testTpch() throws IOException {
-	File baseDir = new File("../testdata/tpch");
-	final File[] csvFiles = baseDir.listFiles(new FilenameFilter() {
-	  public boolean accept(File dir, String name) {
-	    return name.endsWith(".csv");
-	  }
-	});
-	
-	for (File csvFile : csvFiles) {
-	  testMrToImpala(csvFile, "\\|");
-	}
-  }
-  
-  @Test
-  public void readTest() throws IOException {
-    File baseDir = new File("../testdata/tpch");
-    final File[] parquetFiles = baseDir.listFiles(new FilenameFilter() {
-      public boolean accept(File dir, String name) {
-        return name.endsWith(".parquet");
-      }
-    });
+    public void testTpch() throws IOException {
+      File baseDir = new File("../testdata/tpch");
+      final File[] csvFiles = baseDir.listFiles(new FilenameFilter() {
+          public boolean accept(File dir, String name) {
+          return name.endsWith(".csv");
+          }
+          });
 
-    for (File parquetFile : parquetFiles) {
-      convertToCSV(parquetFile);
+      for (File csvFile : csvFiles) {
+        // TPCH data set uses '|' to separate fields.  '|' is a regex 
+        // character so we need to escape it.
+        testMrToImpala(csvFile, "\\|");
+      }
     }
-  }
-  
+
+  @Test
+    public void readTest() throws IOException {
+      File baseDir = new File("../testdata/tpch");
+      final File[] parquetFiles = baseDir.listFiles(new FilenameFilter() {
+          public boolean accept(File dir, String name) {
+          return name.endsWith(".parquet");
+          }
+          });
+
+      for (File parquetFile : parquetFiles) {
+        convertToCSV(parquetFile);
+      }
+    }
+
   private void testMrToImpala(File csvFile, String delimiter) throws IOException {
     LOG.info("Converting csv file to parquet using MR: " + csvFile);
     File parquetFile = convertToParquet(csvFile, delimiter);
     // TODO: try to read this file from Impala	  
   }
-  
+
   static String readFile(String path) throws IOException {
     BufferedReader reader = new BufferedReader(new FileReader(path));
-	String line = null;
-	StringBuilder stringBuilder = new StringBuilder();
-	String ls = System.getProperty("line.separator");
+    String line = null;
+    StringBuilder stringBuilder = new StringBuilder();
+    String ls = System.getProperty("line.separator");
 
-	while ((line = reader.readLine()) != null ) {
-	  stringBuilder.append(line);
-	  stringBuilder.append(ls);
-	}
+    while ((line = reader.readLine()) != null ) {
+      stringBuilder.append(line);
+      stringBuilder.append(ls);
+    }
 
-	return stringBuilder.toString();
+    return stringBuilder.toString();
   }
-  
+
   private File convertToParquet(File csvFile, String delimiter) throws IOException {
-	File schemaFile = new File(csvFile.getParentFile(),
-	    csvFile.getName().substring(
-	        0, csvFile.getName().length() - ".csv".length()) + ".schema");
-	String rawSchema = readFile(schemaFile.getAbsolutePath());
-	
+    File schemaFile = new File(csvFile.getParentFile(),
+        csvFile.getName().substring(
+          0, csvFile.getName().length() - ".csv".length()) + ".schema");
+    String rawSchema = readFile(schemaFile.getAbsolutePath());
+
     File outputFile = new File("target/test/fromExampleFiles", 
         csvFile.getName()+".writeFromJava.parquet");
     outputFile.delete();
-    
+
     outputFile.getParentFile().mkdirs();
     Path path = new Path(outputFile.toURI());
-    
+
     MessageType schema = MessageTypeParser.parseMessageType(rawSchema);
     CsvParquetWriter writer = new CsvParquetWriter(path, schema);
-        
+
     BufferedReader br = new BufferedReader(new FileReader(csvFile));
     String line;
     while ((line = br.readLine()) != null) {
-    	String[] fields = line.split(delimiter);
-    	writer.write(Arrays.asList(fields));
+      String[] fields = line.split(delimiter);
+      writer.write(Arrays.asList(fields));
     }
     br.close();
     writer.close();
-    System.err.println("Done");
     return outputFile;
   }
 
