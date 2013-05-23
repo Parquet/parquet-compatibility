@@ -51,32 +51,32 @@ public class TestReadTPCHFiles {
   private static final Log LOG = Log.getLog(TestReadTPCHFiles.class);
 
   @Test
-    public void testTpch() throws IOException {
-      File baseDir = new File("../testdata/tpch");
-      final File[] csvFiles = baseDir.listFiles(new FilenameFilter() {
-          public boolean accept(File dir, String name) {
-          return name.endsWith(".csv");
-          }
-          });
-
-      for (File csvFile : csvFiles) {
-        testMrToImpala(csvFile, "|");
+  public void testTpch() throws IOException {
+    File baseDir = new File("../testdata/tpch");
+    final File[] csvFiles = baseDir.listFiles(new FilenameFilter() {
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".csv");
       }
+    });
+
+    for (File csvFile : csvFiles) {
+      testMrToImpala(csvFile, "|");
     }
+  }
 
   @Test
-    public void readTest() throws IOException {
-      File baseDir = new File("../testdata/tpch");
-      final File[] parquetFiles = baseDir.listFiles(new FilenameFilter() {
-          public boolean accept(File dir, String name) {
-          return name.endsWith(".parquet");
-          }
-          });
-
-      for (File parquetFile : parquetFiles) {
-        convertToCSV(parquetFile);
+  public void readTest() throws IOException {
+    File baseDir = new File("../testdata/tpch");
+    final File[] parquetFiles = baseDir.listFiles(new FilenameFilter() {
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".parquet");
       }
+    });
+
+    for (File parquetFile : parquetFiles) {
+      convertToCSV(parquetFile);
     }
+  }
 
   private void testMrToImpala(File csvFile, String delimiter) throws IOException {
     LOG.info("Converting csv file to parquet using MR: " + csvFile);
@@ -101,7 +101,7 @@ public class TestReadTPCHFiles {
   private File convertToParquet(File csvFile, String delimiter) throws IOException {
     File schemaFile = new File(csvFile.getParentFile(),
         csvFile.getName().substring(
-          0, csvFile.getName().length() - ".csv".length()) + ".schema");
+            0, csvFile.getName().length() - ".csv".length()) + ".schema");
     String rawSchema = readFile(schemaFile.getAbsolutePath());
 
     File outputFile = new File("target/test/fromExampleFiles",
