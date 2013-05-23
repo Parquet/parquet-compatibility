@@ -4,6 +4,7 @@ message m {
   optional binary order_status;
   optional double total_price;
   optional binary order_date;
+  optional binary order_priority;
   optional binary clerk;
   optional int32 ship_priority;
   optional binary comment;

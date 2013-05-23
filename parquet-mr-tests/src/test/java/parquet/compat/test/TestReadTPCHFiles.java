@@ -15,6 +15,7 @@
  */
 package parquet.compat.test;
 
+import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -25,18 +26,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 import parquet.Log;
-import parquet.column.ColumnDescriptor;
 import parquet.column.page.PageReadStore;
 import parquet.example.data.Group;
 import parquet.example.data.simple.convert.GroupRecordConverter;
@@ -63,7 +59,7 @@ public class TestReadTPCHFiles {
           });
 
       for (File csvFile : csvFiles) {
-        // TPCH data set uses '|' to separate fields.  '|' is a regex 
+        // TPCH data set uses '|' to separate fields.  '|' is a regex
         // character so we need to escape it.
         testMrToImpala(csvFile, "\\|");
       }
@@ -86,7 +82,7 @@ public class TestReadTPCHFiles {
   private void testMrToImpala(File csvFile, String delimiter) throws IOException {
     LOG.info("Converting csv file to parquet using MR: " + csvFile);
     File parquetFile = convertToParquet(csvFile, delimiter);
-    // TODO: try to read this file from Impala	  
+    // TODO: try to read this file from Impala
   }
 
   static String readFile(String path) throws IOException {
@@ -109,7 +105,7 @@ public class TestReadTPCHFiles {
           0, csvFile.getName().length() - ".csv".length()) + ".schema");
     String rawSchema = readFile(schemaFile.getAbsolutePath());
 
-    File outputFile = new File("target/test/fromExampleFiles", 
+    File outputFile = new File("target/test/fromExampleFiles",
         csvFile.getName()+".writeFromJava.parquet");
     outputFile.delete();
 
@@ -121,9 +117,17 @@ public class TestReadTPCHFiles {
 
     BufferedReader br = new BufferedReader(new FileReader(csvFile));
     String line;
+    int lineNumber = 0;
     while ((line = br.readLine()) != null) {
-      String[] fields = line.split(delimiter);
-      writer.write(Arrays.asList(fields));
+      try {
+        String[] fields = line.split(delimiter);
+        writer.write(Arrays.asList(fields));
+        ++ lineNumber;
+      } catch (RuntimeException e) {
+        throw new RuntimeException(
+            format("error converting line %d to Parquet in %s", lineNumber, csvFile.getPath()),
+            e);
+      }
     }
     br.close();
     writer.close();
