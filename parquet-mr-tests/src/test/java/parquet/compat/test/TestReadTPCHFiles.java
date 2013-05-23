@@ -27,6 +27,7 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -59,9 +60,7 @@ public class TestReadTPCHFiles {
           });
 
       for (File csvFile : csvFiles) {
-        // TPCH data set uses '|' to separate fields.  '|' is a regex
-        // character so we need to escape it.
-        testMrToImpala(csvFile, "\\|");
+        testMrToImpala(csvFile, "|");
       }
     }
 
@@ -120,7 +119,7 @@ public class TestReadTPCHFiles {
     int lineNumber = 0;
     while ((line = br.readLine()) != null) {
       try {
-        String[] fields = line.split(delimiter);
+        String[] fields = line.split(Pattern.quote(delimiter));
         writer.write(Arrays.asList(fields));
         ++ lineNumber;
       } catch (RuntimeException e) {
