@@ -2,5 +2,5 @@ message m {
   optional int32 nation_key;
   optional binary name;
   optional int32 region_key;
-  optional binary comment;
+  optional binary comment_col;
 }

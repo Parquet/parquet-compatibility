@@ -6,5 +6,5 @@ message m {
   optional binary phone;
   optional double acctbal;
   optional binary mktsegment;
-  optional binary comment;
+  optional binary comment_col;
 }
