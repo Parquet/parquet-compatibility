@@ -7,5 +7,5 @@ message m {
   optional binary order_priority;
   optional binary clerk;
   optional int32 ship_priority;
-  optional binary comment;
+  optional binary comment_col;
 }
