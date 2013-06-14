@@ -3,6 +3,8 @@ package parquet.compat.test;
 import java.io.File;
 import java.io.IOException;
 
+import junit.framework.Assert;
+
 import org.junit.Test;
 
 import parquet.Log;
@@ -16,8 +18,7 @@ import parquet.Log;
  * (eg- versioned jar files under maven central etc.)
  * 
  * Parquet files for each of the version are assumed to be checked in
- * under $PROJECT_HOME/testdata/
- * 
+ * under $PROJECT_HOME/testdata/tpch/$version (refer to Utils.java)
  * 
  * @author amokashi
  *
@@ -27,6 +28,7 @@ public class TestBackwardsCompatibility {
   private static final Log LOG = Log.getLog(TestImpalaCompatibility.class);
   
   // TODO find a better place to track version number
+  // and find a clever way to manage this (instead of constants)
   public static final String CURRENT_VERSION = "1.0.0-SNAPSHOT";
   
   public static final String[] COMPATIBLE_VERSIONS = {
@@ -42,8 +44,16 @@ public class TestBackwardsCompatibility {
     for (String version : COMPATIBLE_VERSIONS) {
       for(File originalCsvFile : originalCsvFiles) {
         LOG.info("");
-        File versionParquetFile = Utils.getParquetVersionedFile(
+        File versionParquetFile = null;
+        try {
+          versionParquetFile = Utils.getParquetVersionedFile(
             Utils.getFileNamePrefix(originalCsvFile), version, true);
+        } catch (IOException ioe) {
+          LOG.info(ioe.getMessage());
+          LOG.info("Please run the main method of this Test class to " +
+          		"generate the required files");
+          Assert.fail();
+        }
         File csvVersionedTestFile = Utils.getCsvTestFile(
             versionParquetFile.getName()+"."+version, true);
         
