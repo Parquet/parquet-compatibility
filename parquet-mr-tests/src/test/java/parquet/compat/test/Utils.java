@@ -3,6 +3,7 @@ package parquet.compat.test;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -11,13 +12,22 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
+import com.google.code.externalsorting.ExternalSort;
+
 import parquet.Log;
+import parquet.Preconditions;
 import parquet.column.page.PageReadStore;
 import parquet.example.data.Group;
 import parquet.example.data.simple.convert.GroupRecordConverter;
@@ -90,6 +100,30 @@ public class Utils {
     return parquetFile;
   }
 
+  public static String getFileNamePrefix(File file) {
+    return file.getName().substring(0, file.getName().indexOf("."));
+  }
+
+  public static File getParquetTestFile(String prefix, boolean deleteIfExists) {
+    File outputFile = new File("target/test/fromExampleFiles",
+        prefix+".parquet");
+    outputFile.getParentFile().mkdirs();
+    if(deleteIfExists) {
+      outputFile.delete();
+    }
+    return outputFile;
+  }
+
+  public static File getCsvTestFile(String prefix , boolean deleteIfExists) {
+    File outputFile = new File("target/test/fromExampleFiles",
+        prefix+".csv");
+    outputFile.getParentFile().mkdirs();
+    if(deleteIfExists) {
+      outputFile.delete();
+    }
+    return outputFile;
+  }
+
   public static void convertCsvToParquet(File csvFile, File outputParquetFile) throws IOException {
     LOG.info("Converting " + csvFile.getName() + " to " + outputParquetFile.getName());
     String rawSchema = getSchema(csvFile);
@@ -124,15 +158,15 @@ public class Utils {
   }
 
   public static void convertParquetToCSV(File parquetFile, File csvOutputFile) throws IOException {
-    // TODO argument checks - parquetfile must end in .parquet
-    // csv file must end in .csv
+    Preconditions.checkArgument(parquetFile.getName().endsWith(".parquet"), 
+        "parquet file should have .parquet extension");
+    Preconditions.checkArgument(csvOutputFile.getName().endsWith(".csv"), 
+        "csv file should have .csv extension");
+    Preconditions.checkArgument(!csvOutputFile.exists(), 
+        "Output file " + csvOutputFile.getAbsolutePath() + " already exists");
 
     LOG.info("Converting " + parquetFile.getName() + " to " + csvOutputFile.getName());
 
-    if(csvOutputFile.exists()) {
-      throw new IOException("Output file " + csvOutputFile.getAbsolutePath() + 
-          " already exists");
-    }
     Path parquetFilePath = new Path(parquetFile.toURI());
 
     Configuration configuration = new Configuration(true);
@@ -193,27 +227,48 @@ public class Utils {
     out.close();
   }
 
-  public static String getFileNamePrefix(File file) {
-    return file.getName().substring(0, file.getName().indexOf("."));
+  public static void verify(File expectedCsvFile, File outputCsvFile, boolean orderMatters) throws IOException {
+    if(!orderMatters) {
+      // sort the files before diff'ing them
+      expectedCsvFile = sortFile(expectedCsvFile);
+      outputCsvFile = sortFile(outputCsvFile);
+    }
+    verify(expectedCsvFile, outputCsvFile);
   }
 
-  public static File getParquetTestFile(String prefix, boolean deleteIfExists) {
-    File outputFile = new File("target/test/fromExampleFiles",
-        prefix+".parquet");
-    outputFile.getParentFile().mkdirs();
-    if(deleteIfExists) {
-      outputFile.delete();
-    }
-    return outputFile;
+  private static File sortFile(File inFile) throws IOException {
+    File sortedFile = new File(inFile.getAbsolutePath().concat(".sorted"));
+    Comparator<String> comparator = new Comparator<String>() {
+      public int compare(String r1, String r2){
+        return r1.compareTo(r2);
+        }
+      };
+    List<File> l = ExternalSort.sortInBatch(inFile, comparator) ;
+    ExternalSort.mergeSortedFiles(l, sortedFile, comparator);
+    return sortedFile;
   }
 
-  public static File getCsvTestFile(String prefix , boolean deleteIfExists) {
-    File outputFile = new File("target/test/fromExampleFiles",
-        prefix+".csv");
-    outputFile.getParentFile().mkdirs();
-    if(deleteIfExists) {
-      outputFile.delete();
+  private static File sortFileOld(File inFile) throws IOException {
+    File sortedFile = new File(inFile.getAbsolutePath().concat(".sorted"));
+    BufferedReader reader = new BufferedReader(new FileReader(inFile));
+    PrintWriter out = new PrintWriter(new FileWriter(sortedFile));
+
+    try {
+      String inputLine;
+      List<String> lineList = new ArrayList<String>();
+      while ((inputLine = reader.readLine()) != null) {
+        lineList.add(inputLine);
+      }
+      Collections.sort(lineList);
+
+      for (String outputLine : lineList) {
+        out.println(outputLine);
+      }
+      out.flush();
+    } finally {
+      reader.close();
+      out.close();
     }
-    return outputFile;
+    return sortedFile;
   }
 }

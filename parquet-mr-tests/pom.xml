@@ -14,8 +14,19 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
+  <repositories>
+                <repository>
+                        <id>externalsortinginjava.googlecode.com</id>
+                        <url>http://externalsortinginjava.googlecode.com/svn/m2/releases</url>
+                </repository>
+  </repositories>
   <dependencies>
-
+    <dependency>
+      <groupId>com.google.code</groupId>
+      <artifactId>externalsortinginjava</artifactId>
+      <version>0.1.4</version>
+    </dependency>
+    
     <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-column</artifactId>

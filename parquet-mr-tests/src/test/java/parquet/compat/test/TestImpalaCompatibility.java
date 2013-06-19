@@ -29,6 +29,8 @@ public class TestImpalaCompatibility {
   public void testWriteToImpala() throws IOException {
     File[] originalCsvFiles = Utils.getAllOriginalCSVFiles();
     
+    LOG.info("Testing compatibility in reading files from impala");
+    
     for (File csvFile : originalCsvFiles) {
       File outputParquetFile = Utils.getParquetTestFile(
           Utils.getFileNamePrefix(csvFile), true);
@@ -41,13 +43,15 @@ public class TestImpalaCompatibility {
   public void testReadFromImpala() throws IOException {
     
     File[] originalCsvFiles = Utils.getAllOriginalCSVFiles();
+    
+    LOG.info("Testing compatibility in reading files written by impala");
 
     for(File originalCsv : originalCsvFiles) {
       String prefix = Utils.getFileNamePrefix(originalCsv);
       File parquetFile = Utils.getParquetImpalaFile(prefix);
       File csvOutputFile = Utils.getCsvTestFile(prefix, true);
       Utils.convertParquetToCSV(parquetFile, csvOutputFile);
-      Utils.verify(originalCsv, csvOutputFile);
+      Utils.verify(originalCsv, csvOutputFile, false);
     }
   }
 }
