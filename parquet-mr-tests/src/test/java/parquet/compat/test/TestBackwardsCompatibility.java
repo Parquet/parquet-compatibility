@@ -1,3 +1,18 @@
+/**
+ * Copyright 2012 Twitter, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package parquet.compat.test;
 
 import java.io.File;
@@ -36,15 +51,15 @@ public class TestBackwardsCompatibility {
     File[] originalCsvFiles = Utils.getAllOriginalCSVFiles();
 
     for (String version : COMPATIBLE_VERSIONS) {
-      LOG.info("Testing compatibility with " + COMPATIBLE_VERSIONS);
+      LOG.info("Testing compatibility with " + version);
       for(File originalCsvFile : originalCsvFiles) {
         File versionParquetFile = Utils.getParquetVersionedFile(
               Utils.getFileNamePrefix(originalCsvFile), version, true);
         
         File csvVersionedTestFile = Utils.getCsvTestFile(
-            versionParquetFile.getName()+"."+version, true);
+            versionParquetFile.getName(), version, true);
 
-        Utils.convertParquetToCSV(versionParquetFile, csvVersionedTestFile);
+        ConvertUtils.convertParquetToCSV(versionParquetFile, csvVersionedTestFile);
 
         Utils.verify(originalCsvFile, csvVersionedTestFile);
       }
@@ -60,14 +75,14 @@ public class TestBackwardsCompatibility {
     File[] csvFiles = Utils.getAllOriginalCSVFiles();
     for (File csvFile : csvFiles) {
       File parquetTestFile = Utils.getParquetTestFile(
-          Utils.getFileNamePrefix(csvFile)+".java.readwrite", true);
-      Utils.convertCsvToParquet(csvFile, parquetTestFile);
+          Utils.getFileNamePrefix(csvFile), "readwrite", true);
+      ConvertUtils.convertCsvToParquet(csvFile, parquetTestFile);
 
       File csvTestFile = Utils.getCsvTestFile(
-          Utils.getFileNamePrefix(csvFile)+".java.readwrite", true);
-      Utils.convertParquetToCSV(parquetTestFile, csvTestFile);
+          Utils.getFileNamePrefix(csvFile), "readwrite", true);
+      ConvertUtils.convertParquetToCSV(parquetTestFile, csvTestFile);
 
-      Utils.verify(csvTestFile, csvFile);
+      Utils.verify(csvFile, csvTestFile);
     }
   }
 }

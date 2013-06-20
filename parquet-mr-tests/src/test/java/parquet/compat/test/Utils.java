@@ -1,12 +1,25 @@
+/**
+ * Copyright 2012 Twitter, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package parquet.compat.test;
 
-import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -14,36 +27,27 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.regex.Pattern;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-
-import com.google.code.externalsorting.ExternalSort;
 
 import parquet.Log;
-import parquet.Preconditions;
-import parquet.column.page.PageReadStore;
-import parquet.example.data.Group;
-import parquet.example.data.simple.convert.GroupRecordConverter;
-import parquet.hadoop.ParquetFileReader;
-import parquet.hadoop.metadata.ParquetMetadata;
-import parquet.io.ColumnIOFactory;
-import parquet.io.MessageColumnIO;
-import parquet.io.RecordReader;
-import parquet.schema.MessageType;
-import parquet.schema.MessageTypeParser;
-import parquet.schema.PrimitiveType.PrimitiveTypeName;
-import parquet.schema.Type;
+
+import com.google.code.externalsorting.ExternalSort;
 
 public class Utils {
 
   private static final Log LOG = Log.getLog(Utils.class);
+  
+  public static void closeQuietly(Closeable res) {
+    try {
+      if(res != null) {
+        res.close();
+      }
+    } catch (IOException ioe) {
+      LOG.warn("Exception closing reader " + res + ": " + ioe.getMessage());
+    }    
+  }
 
   public static File[] getAllOriginalCSVFiles() {
     File baseDir = new File("../testdata/tpch");
@@ -53,31 +57,6 @@ public class Utils {
       }
     });
     return csvFiles;
-  }
-
-  public static final String CSV_DELIMITER= "|";
-
-  private static String readFile(String path) throws IOException {
-    BufferedReader reader = new BufferedReader(new FileReader(path));
-    String line = null;
-    StringBuilder stringBuilder = new StringBuilder();
-    String ls = System.getProperty("line.separator");
-
-    while ((line = reader.readLine()) != null ) {
-      stringBuilder.append(line);
-      stringBuilder.append(ls);
-    }
-
-    reader.close();
-
-    return stringBuilder.toString();
-  }
-
-  public static String getSchema(File csvFile) throws IOException {
-    String fileName = csvFile.getName().substring(
-        0, csvFile.getName().length() - ".csv".length()) + ".schema";
-    File schemaFile = new File(csvFile.getParentFile(), fileName);
-    return readFile(schemaFile.getAbsolutePath());
   }
 
   public static File getParquetVersionedFile(String prefix, String version, boolean failIfNotExist) 
@@ -104,9 +83,9 @@ public class Utils {
     return file.getName().substring(0, file.getName().indexOf("."));
   }
 
-  public static File getParquetTestFile(String prefix, boolean deleteIfExists) {
+  public static File getParquetTestFile(String name, String module, boolean deleteIfExists) {
     File outputFile = new File("target/test/fromExampleFiles",
-        prefix+".parquet");
+        name + (module != null ? "." + module : "") + ".parquet");
     outputFile.getParentFile().mkdirs();
     if(deleteIfExists) {
       outputFile.delete();
@@ -114,105 +93,22 @@ public class Utils {
     return outputFile;
   }
 
-  public static File getCsvTestFile(String prefix , boolean deleteIfExists) {
+  public static File getCsvTestFile(String name, String module, boolean deleteIfExists) {
     File outputFile = new File("target/test/fromExampleFiles",
-        prefix+".csv");
+        name + (module != null ? "." + module : "") + ".csv");
     outputFile.getParentFile().mkdirs();
     if(deleteIfExists) {
       outputFile.delete();
     }
     return outputFile;
-  }
-
-  public static void convertCsvToParquet(File csvFile, File outputParquetFile) throws IOException {
-    LOG.info("Converting " + csvFile.getName() + " to " + outputParquetFile.getName());
-    String rawSchema = getSchema(csvFile);
-    if(outputParquetFile.exists()) {
-      throw new IOException("Output file " + outputParquetFile.getAbsolutePath() + 
-          " already exists");
-    }
-
-    Path path = new Path(outputParquetFile.toURI());
-
-    MessageType schema = MessageTypeParser.parseMessageType(rawSchema);
-    CsvParquetWriter writer = new CsvParquetWriter(path, schema);
-
-    BufferedReader br = new BufferedReader(new FileReader(csvFile));
-    String line;
-    int lineNumber = 0;
-    try {
-      while ((line = br.readLine()) != null) {
-        String[] fields = line.split(Pattern.quote(CSV_DELIMITER));
-        writer.write(Arrays.asList(fields));
-        ++lineNumber;
-      }
-    }catch (RuntimeException e) {
-      throw new RuntimeException(
-          format("error converting line %d to Parquet in %s", lineNumber, csvFile.getPath()),
-          e);
-    } finally {
-      LOG.info("Number of lines: " + lineNumber);
-      br.close();
-      writer.close();
-    } 
-  }
-
-  public static void convertParquetToCSV(File parquetFile, File csvOutputFile) throws IOException {
-    Preconditions.checkArgument(parquetFile.getName().endsWith(".parquet"), 
-        "parquet file should have .parquet extension");
-    Preconditions.checkArgument(csvOutputFile.getName().endsWith(".csv"), 
-        "csv file should have .csv extension");
-    Preconditions.checkArgument(!csvOutputFile.exists(), 
-        "Output file " + csvOutputFile.getAbsolutePath() + " already exists");
-
-    LOG.info("Converting " + parquetFile.getName() + " to " + csvOutputFile.getName());
-
-    Path parquetFilePath = new Path(parquetFile.toURI());
-
-    Configuration configuration = new Configuration(true);
-
-    // TODO Following can be changed by using ParquetReader instead of ParquetFileReader
-    ParquetMetadata readFooter = ParquetFileReader.readFooter(configuration, parquetFilePath);
-    MessageType schema = readFooter.getFileMetaData().getSchema();
-    ParquetFileReader parquetFileReader = new ParquetFileReader(
-        configuration, parquetFilePath, readFooter.getBlocks(), schema.getColumns());
-    BufferedWriter w = new BufferedWriter(new FileWriter(csvOutputFile));
-    PageReadStore pages = null;
-    try {
-      while (null != (pages = parquetFileReader.readNextRowGroup())) {
-        final long rows = pages.getRowCount();
-        LOG.info("Number of rows: " + rows);
-
-        final MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-        final RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
-        for (int i = 0; i < rows; i++) {
-          final Group g = recordReader.read();
-          for (int j = 0; j < schema.getFieldCount(); j++) {
-            final Type type = schema.getFields().get(j);
-            if (j > 0) {
-              w.write(CSV_DELIMITER);
-            }
-            String valueToString = g.getValueToString(j, 0);// no repetition here
-            if (type.isPrimitive()
-                && (type.asPrimitiveType().getPrimitiveTypeName() == PrimitiveTypeName.FLOAT
-                || type.asPrimitiveType().getPrimitiveTypeName() == PrimitiveTypeName.DOUBLE)
-                && valueToString.endsWith(".0")) {
-              valueToString = valueToString.substring(0, valueToString.length() - 2);
-            }
-            w.write(valueToString);
-          }
-          w.write('\n');
-        }
-      } 
-    } finally {
-      parquetFileReader.close();
-      w.close();
-    }
   }
 
   public static void verify(File expectedCsvFile, File outputCsvFile) throws IOException {
-    final BufferedReader expected = new BufferedReader(new FileReader(expectedCsvFile));
-    final BufferedReader out = new BufferedReader(new FileReader(outputCsvFile));
+    BufferedReader expected = null;
+    BufferedReader out = null;
+    try {
+    expected = new BufferedReader(new FileReader(expectedCsvFile));
+    out = new BufferedReader(new FileReader(outputCsvFile));
     String lineIn;
     String lineOut = null;
     int lineNumber = 0;
@@ -223,8 +119,10 @@ public class Utils {
     }
     assertNull("line " + lineNumber, lineIn);
     assertNull("line " + lineNumber, out.readLine());
-    expected.close();
-    out.close();
+    } finally {
+      Utils.closeQuietly(expected);
+      Utils.closeQuietly(out);
+    }
   }
 
   public static void verify(File expectedCsvFile, File outputCsvFile, boolean orderMatters) throws IOException {
@@ -241,13 +139,14 @@ public class Utils {
     Comparator<String> comparator = new Comparator<String>() {
       public int compare(String r1, String r2){
         return r1.compareTo(r2);
-        }
-      };
+      }
+    };
     List<File> l = ExternalSort.sortInBatch(inFile, comparator) ;
     ExternalSort.mergeSortedFiles(l, sortedFile, comparator);
     return sortedFile;
   }
 
+  @SuppressWarnings("unused")
   private static File sortFileOld(File inFile) throws IOException {
     File sortedFile = new File(inFile.getAbsolutePath().concat(".sorted"));
     BufferedReader reader = new BufferedReader(new FileReader(inFile));
@@ -266,8 +165,8 @@ public class Utils {
       }
       out.flush();
     } finally {
-      reader.close();
-      out.close();
+      closeQuietly(reader);
+      closeQuietly(out);
     }
     return sortedFile;
   }
