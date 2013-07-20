@@ -1,0 +1,10 @@
+message m {
+  optional int64 cust_key;
+  optional binary name;
+  optional binary address;
+  optional int32 nation_key;
+  optional binary phone;
+  optional double acctbal;
+  optional binary mktsegment;
+  optional binary comment_col;
+}
