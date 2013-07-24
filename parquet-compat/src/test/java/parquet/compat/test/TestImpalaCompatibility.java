@@ -26,7 +26,6 @@ import parquet.Log;
 public class TestImpalaCompatibility {
   private static final Log LOG = Log.getLog(TestImpalaCompatibility.class);
 
-  @Ignore
   @Test
   public void testReadFromImpala() throws IOException {
     
