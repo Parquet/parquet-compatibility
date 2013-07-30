@@ -16,7 +16,6 @@
 
   <modules>
     <module>parquet-compat-1.0.0</module>
-    <module>parquet-compat-1.0.0-t1</module>
   </modules>
 
   <dependencies>

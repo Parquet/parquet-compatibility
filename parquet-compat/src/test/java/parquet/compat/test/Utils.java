@@ -131,12 +131,22 @@ public class Utils {
     }
     return parquetFile;
   }
+  
+  public static String[] getImpalaDirectories() {
+    File baseDir = new File("../parquet-testdata/impala");
+    final String[] impalaVersions = baseDir.list(new FilenameFilter() {
+      public boolean accept(File dir, String name) {
+        return !name.startsWith(".");
+      }
+    });
+    return impalaVersions;
+  }
 
-  public static File getParquetImpalaFile(String name) throws IOException {
+  public static File getParquetImpalaFile(String name, String impalaVersion) throws IOException {
     String fileName = name + ".impala.parquet";
-    File parquetFile = new File("../parquet-testdata/impala/", fileName);
+    File parquetFile = new File("../parquet-testdata/impala/" + impalaVersion, fileName);
     if(!parquetFile.exists()) {
-      //throw new IOException("File " + fileName + " does not exist");
+      throw new IOException("File " + fileName + " does not exist");
     }
     return parquetFile;
   }

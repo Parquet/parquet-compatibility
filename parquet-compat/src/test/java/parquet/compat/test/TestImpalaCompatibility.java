@@ -18,7 +18,6 @@ package parquet.compat.test;
 import java.io.File;
 import java.io.IOException;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import parquet.Log;
@@ -30,15 +29,20 @@ public class TestImpalaCompatibility {
   public void testReadFromImpala() throws IOException {
     
     File[] originalCsvFiles = Utils.getAllOriginalCSVFiles();
-    
+    String[] impalaVersions = Utils.getImpalaDirectories();
     LOG.info("Testing compatibility in reading files written by impala");
 
-    for(File originalCsv : originalCsvFiles) {
-      String prefix = Utils.getFileNamePrefix(originalCsv);
-      File parquetFile = Utils.getParquetImpalaFile(prefix);
-      File csvOutputFile = Utils.getCsvTestFile(prefix, "impala", true);
-      ConvertUtils.convertParquetToCSV(parquetFile, csvOutputFile);
-      Utils.verify(originalCsv, csvOutputFile, false);
+    for(String impalaVersion : impalaVersions) {
+      for(File originalCsv : originalCsvFiles) {
+        String prefix = Utils.getFileNamePrefix(originalCsv);
+        File parquetFile = null;
+        try {
+        parquetFile = Utils.getParquetImpalaFile(prefix, impalaVersion);
+        } catch (Exception e){continue;}
+        File csvOutputFile = Utils.getCsvTestFile(prefix, "impala", true);
+        ConvertUtils.convertParquetToCSV(parquetFile, csvOutputFile);
+        Utils.verify(originalCsv, csvOutputFile, false);
+      }
     }
   }
 }

@@ -15,8 +15,6 @@
  */
 package parquet.compat.test;
 
-import static java.lang.String.format;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -43,8 +41,6 @@ import parquet.io.MessageColumnIO;
 import parquet.io.RecordReader;
 import parquet.schema.MessageType;
 import parquet.schema.MessageTypeParser;
-import parquet.schema.Type;
-import parquet.schema.PrimitiveType.PrimitiveTypeName;
 
 public class ConvertUtils {
 
