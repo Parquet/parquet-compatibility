@@ -38,6 +38,7 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.io.file.tfile.Utils.Version;
 
 import parquet.Log;
 
@@ -55,6 +56,29 @@ public class Utils {
     }    
   }
 
+  public static void writePerfResult(String module, long millis) throws IOException{
+    PrintWriter writer = null;
+    try {
+      File outputFile = new File("target/test/perftime." + module + ".txt");
+      outputFile.delete();
+      writer = new  PrintWriter(outputFile);
+      writer.write(String.valueOf(millis));
+    } finally {
+      closeQuietly(writer);
+    }
+  }
+  
+  public static long readPerfResult(String version, String module) throws IOException {
+    BufferedReader reader = null;
+    try {
+      File inFile = new File("../" + version + "/target/test/perftime." + module + ".txt");
+      reader = new  BufferedReader(new FileReader(inFile));
+      return Long.parseLong(reader.readLine());
+    } finally {
+      closeQuietly(reader);
+    }
+  }
+  
   public static File createTestFile(long largerThanMB) throws IOException {
     File outputFile = new File("target/test/csv/perftest.csv");
     if(outputFile.exists()) {
@@ -95,16 +119,103 @@ public class Utils {
 
   public static String[] getAllPreviousVersionDirs() throws IOException {
     File baseDir = new File("..");
-    final String currentVersion = new File(".").getCanonicalFile().getName();
+    final String currentVersion = getCurrentVersion();
     final String[] versions = baseDir.list(new FilenameFilter() {
       public boolean accept(File dir, String name) {
         return name.startsWith("parquet-compat-") 
-            && name.compareTo(currentVersion) <= 0;
+            && new Version(name.replace("parquet-compat-", "")).compareTo(new Version(currentVersion)) < 0;
       }
     });
     return versions;
   }
+  
+  static class Version implements Comparable<Version> {
+    int major;
+    int minor;
+    int minorminor;
+    String tag;
+    
+    Version(String versionStr) {
+      String[] versions = versionStr.split("\\.");
+      int size = versions.length;
+      if (size > 0) {
+        this.major = Integer.parseInt(versions[0]);
+      }
+      if (size > 1) {
+        this.minor = Integer.parseInt(versions[1]);
+      }
+      if (size > 2) {
+        if(versions[2].contains("-")) {
+          String[] minorMin = versions[2].split("-");
+          this.minorminor = Integer.parseInt(minorMin[0]);
+          this.tag = minorMin[1];
+        } else {
+          this.minorminor = Integer.parseInt(versions[2]);
+        }
+      }
+      if(size == 4) {
+        this.tag = versions[3];
+      }
+      if (size > 4) {
+        throw new RuntimeException("Illegal version number " + versionStr);
+      }
+    }
+    
+    public int compareMajorMinor(Version o) {
+      return ComparisonChain.
+          start().
+      compare(major, o.major).
+      compare(minor, o.minor).
+      result();
+    }
 
+    @Override
+    public int compareTo(Version o) {
+      return ComparisonChain.
+          start().
+      compare(major, o.major).
+      compare(minor, o.minor).
+      compare(minorminor, o.minorminor).
+      compare(tag, o.tag).
+      result();
+    }
+    
+    // Very basic implementation of comparisonchain
+    private static class ComparisonChain {
+      int result = 0;
+      private ComparisonChain(int result) {
+        this.result = result; 
+      }
+      static ComparisonChain start() {
+        return new ComparisonChain(0);
+      }
+      ComparisonChain compare(String a, String b) {
+        if (result != 0) {
+          return this;
+        }
+        if(b == null) {
+          if (a!= null) result=1;
+          else result= 0;
+        } else if (a == null) {
+          result=1;
+        } else if (result == 0) {
+          result = a.compareTo(b);
+        }
+        return this;
+      }
+      ComparisonChain compare(int a, int b) {
+        if (result == 0) {
+          result = Integer.compare(a, b);
+        }
+        return this;
+      }
+      int result() {
+        return result;
+      }
+    }    
+  }
+  
+  
   public static File getParquetOutputFile(String name, String module, boolean deleteIfExists) {
     File outputFile = new File("target/parquet/", getParquetFileName(name, module));
     outputFile.getParentFile().mkdirs();
@@ -132,11 +243,22 @@ public class Utils {
     return parquetFile;
   }
   
-  public static String[] getImpalaDirectories() {
+  private static String getCurrentVersion() throws IOException {
+    return new File(".").getCanonicalFile().getName().replace("parquet-compat-", "");
+  }
+  
+  public static String[] getImpalaDirectories() throws IOException {
     File baseDir = new File("../parquet-testdata/impala");
+    final String currentVersion = getCurrentVersion();
     final String[] impalaVersions = baseDir.list(new FilenameFilter() {
       public boolean accept(File dir, String name) {
-        return !name.startsWith(".");
+        if (name.startsWith(".")) {
+          return false;
+        }
+        if (name.contains("-")) {
+          name = name.split("-")[0];
+        }
+        return new Version(name).compareMajorMinor(new Version(currentVersion)) == 0;
       }
     });
     return impalaVersions;

@@ -100,10 +100,11 @@ public class ConvertUtils {
         writer.write(Arrays.asList(fields));
         ++lineNumber;
       }
+
+      writer.close();
     } finally {
       LOG.info("Number of lines: " + lineNumber);
       Utils.closeQuietly(br);
-      Utils.closeQuietly(writer);
     } 
   }
 
@@ -134,9 +135,9 @@ public class ConvertUtils {
       while( (g = reader.read())!= null) {
         writeGroup(w, g, schema);
       }
+      reader.close();
     }
     finally {
-      Utils.closeQuietly(reader);
       Utils.closeQuietly(w);
     }
   }

@@ -4,7 +4,7 @@
 
   <groupId>parquet</groupId>
   <artifactId>parquet-compatibility</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>pom</packaging>
 
   <name>Parquet Compatibility</name>
@@ -16,23 +16,10 @@
 
   <modules>
     <module>parquet-compat-1.0.0</module>
+    <module>parquet-compat-1.1.0</module>
   </modules>
 
   <dependencies>
-    <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>parquet-column</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.twitter</groupId>      
-      <artifactId>parquet-hadoop</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
-      <scope>test</scope>
-    </dependency>
-
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
