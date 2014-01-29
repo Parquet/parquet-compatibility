@@ -1,0 +1,13 @@
+message m {
+  optional int32 id;
+  optional boolean bool_col;
+  optional int32 tinyint_col;
+  optional int32 smallint_col;
+  optional int32 int_col;
+  optional int64 bigint_col;
+  optional float float_col;
+  optional double double_col;
+  optional binary date_string_col;
+  optional binary string_col;
+  optional int96 timestamp_col;
+}
