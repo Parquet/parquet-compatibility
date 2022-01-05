@@ -1,7 +1,10 @@
 parquet-compatibility
 =====================
 
-compatibility tests to make sur C and Java implementations can read each other
+Compatibility tests to make sure C and Java implementations can read each other.
+
+As of January 2022, only Parquet versions up to 1.2.0 are tested for
+compatibility.
 
 Submodules:
 -----------
